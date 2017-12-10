@@ -1,0 +1,103 @@
+##########################################################################
+# 部署配置文件(demo)
+# 本配置文件(xx.yml)中的变量(${xxx})是从同级目录下的.env文件中读取的
+##########################################################################
+# compose支持的版本2
+version: "2"
+services:
+  # demo proxy
+  demo-proxy:
+    image: harbor.gdxw.com/library/nginx:1.12
+    container_name: "${ENV_PREFIX}-demo-proxy"
+    hostname: "${ENV_PREFIX}-demo-proxy"
+    restart: "always"
+    environment:
+      - PROXY_HOST1=172.16.130.11
+      - PROXY_PORT1=8080
+      - PROXY_HOST2=172.16.130.12
+      - PROXY_PORT2=8080
+    volumes:
+      - ./volume/demo-proxy/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./volume/demo-proxy/conf/proxy.conf:/etc/nginx/conf.d/proxy.conf:ro
+      - ./volume/demo-proxy/conf/upstream.temp:/etc/nginx/conf.d/upstream.temp:ro
+      - ./volume/demo-proxy/script/docker-entrypoint.sh:/docker-entrypoint.sh
+    entrypoint: /docker-entrypoint.sh
+    command: nginx -g 'daemon off;'
+    ports:
+      - "8180:80"
+    networks:
+      mynet:
+        ipv4_address: 172.16.130.10
+  # demo web1
+  demo-web1:
+    image: harbor.gdxw.com/gdxw/alpine:tomcat8
+    container_name: "${ENV_PREFIX}-demo-web1"
+    hostname: "${ENV_PREFIX}-demo-web1"
+    restart: "always"
+    environment:
+      - RMI_SERVER_HOSTNAME=${HOST_IP}
+      - RMI_REGISTRY_PORT_PLATFORM=11011
+      - RMI_SERVER_PORT_PLATFORM=11012
+      - MQ_HOST=192.168.8.200
+      - MQ_PORT=5672
+      - MQ_USER=demo
+      - MQ_PASS=demo
+      - MQ_VHOST=/demo
+    env_file:
+      - ./volume/demo-web/env/default.env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./volume/demo-web/conf/wrapper-java-additional.temp:/data/tomcat/conf/wrapper-java-additional.temp:ro
+      - ./volume/demo-web/logs:/data/tomcat/logs:rw
+      - ./volume/demo-web/www:/data/tomcat/webapps/ROOT:ro
+      - ./volume/demo-web/static:/data/tomcat/static:ro
+      - ./volume/demo-web/script/docker-entrypoint.sh:/docker-entrypoint.sh
+    entrypoint: /docker-entrypoint.sh
+    command: /data/tomcat/bin/appcli.sh console
+    ports:
+      - "8181:8080"
+      - "11011:11011"
+      - "11012:11012"
+    networks:
+      mynet:
+        ipv4_address: 172.16.130.11
+  # demo web2
+  demo-web2:
+    image: harbor.gdxw.com/gdxw/alpine:tomcat8
+    container_name: "${ENV_PREFIX}-demo-web2"
+    hostname: "${ENV_PREFIX}-demo-web2"
+    restart: "always"
+    environment:
+      - RMI_SERVER_HOSTNAME=${HOST_IP}
+      - RMI_REGISTRY_PORT_PLATFORM=11021
+      - RMI_SERVER_PORT_PLATFORM=11022
+      - MQ_HOST=192.168.8.200
+      - MQ_PORT=5672
+      - MQ_USER=demo
+      - MQ_PASS=demo
+      - MQ_VHOST=/demo
+    env_file:
+      - ./volume/demo-web/env/default.env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./volume/demo-web/conf/wrapper-java-additional.temp:/data/tomcat/conf/wrapper-java-additional.temp:ro
+      - ./volume/demo-web/logs:/data/tomcat/logs:rw
+      - ./volume/demo-web/www:/data/tomcat/webapps/ROOT:ro
+      - ./volume/demo-web/static:/data/tomcat/static:ro
+      - ./volume/demo-web/script/docker-entrypoint.sh:/docker-entrypoint.sh
+    entrypoint: /docker-entrypoint.sh
+    command: /data/tomcat/bin/appcli.sh console
+    ports:
+      - "8182:8080"
+      - "11021:11021"
+      - "11022:11022"
+    networks:
+      mynet:
+        ipv4_address: 172.16.130.12
+networks:
+  mynet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.16.130.0/24"
