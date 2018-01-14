@@ -25,6 +25,26 @@ services:
     networks:
       mynet:
         ipv4_address: 172.16.100.10
+  # 数据库
+  mysql3:
+    image: harbor.gdxw.com/library/mysql:8.0
+    container_name: "${ENV_PREFIX}-common-mysql3"
+    hostname: "${ENV_PREFIX}-common-mysql"
+    restart: "always"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=test
+      - MYSQL_USER=test
+      - MYSQL_PASSWORD=test
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./volume/mysql/conf:/etc/mysql/conf.d:ro
+      - ./volume/mysql/data:/var/lib/mysql:rw
+    ports:
+      - "3308:3306"
+    networks:
+      mynet:
+        ipv4_address: 172.16.100.12
   # 消息队列
   rabbitmq:
     image: harbor.gdxw.com/library/rabbitmq:3.6
