@@ -1,0 +1,127 @@
+##########################################################################
+# 部署配置文件(gclm)
+# 本配置文件(xx.yml)中的变量(${xxx})是从同级目录下的.env文件中读取的
+##########################################################################
+# compose支持的版本2
+version: "2"
+services:
+  # 采集器前端代理
+  gclm-proxy:
+    image: harbor.gdxw.com/library/nginx:1.12
+    container_name: "${ENV_PREFIX}-gclm-proxy"
+    hostname: "${ENV_PREFIX}-gclm-proxy"
+    restart: "always"
+    environment:
+      - PROXY_HOST1=172.16.110.11
+      - PROXY_PORT1=1162
+      - PROXY_HOST2=172.16.110.12
+      - PROXY_PORT2=1162
+    volumes:
+      - ./volume/gclm-proxy/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./volume/gclm-proxy/conf/proxy.conf:/etc/nginx/stream.d/proxy.conf:ro
+      - ./volume/gclm-proxy/conf/upstream.temp:/etc/nginx/stream.d/upstream.temp:ro
+      - ./volume/gclm-proxy/script/docker-entrypoint.sh:/docker-entrypoint.sh
+    entrypoint: /docker-entrypoint.sh
+    command: nginx -g 'daemon off;'
+    ports:
+      - "162:162/udp"
+    networks:
+      mynet:
+        ipv4_address: 172.16.110.10
+  # 采集器服务1
+  gclm-service1:
+    image: harbor.gdxw.com/gdxw/nms-gclm:${GCLM_VERSION}
+    container_name: "${ENV_PREFIX}-gclm-service1"
+    hostname: "${ENV_PREFIX}-gclm-service1"
+    restart: "always"
+    environment:
+      - RMI_REGISTRY_IP=${HOST_IP}
+      - RMI_REGISTRY_PORT=1499
+      - RMI_SERVICE_PORT=1599
+      - JMX_REGISTRY_PORT=11001
+      - JMX_SERVICE_PORT=11002
+      - ZK_ADDRESS=${HOST_IP}:2181
+      - GCLM_AREA=wuhou
+      - TRAP_PORT=1162
+      - MQ_HOST=${HOST_IP}
+      - MQ_PORT=5672
+      - MQ_USER=icm
+      - MQ_PASS=icm
+      - MQ_VHOST=/icm
+      - MQ_EXCHANGE_TOPIC=exchange-topic
+      - MQ_QUEUE_EVENT_TRAP=event-trap
+      - MQ_ROUTEKEY_EVENT_TRAP=event-trap
+      - MQ_QUEUE_RESOURCE_SCAN_RESULT=resource-scan-result
+      - MQ_ROUTEKEY_RESOURCE_SCAN_RESULT=resource-scan-result
+      - MQ_QUEUE_RESOURCE_SCAN_FINISH=resource-scan-finish
+      - MQ_ROUTEKEY_RESOURCE_SCAN_FINISH=resource-scan-finish
+    env_file:
+      - ./volume/gclm-service/env/default.env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./volume/gclm-service/logs-1:/home/gdxw/gdxw-base/logs:rw
+      - ./volume/gclm-service/conf/wrapper-java-additional.temp:/home/gdxw/gdxw-base/conf/wrapper/wrapper-java-additional.temp:ro
+      - ./volume/gclm-service/script/docker-entrypoint.sh:/docker-entrypoint.sh
+    entrypoint: /docker-entrypoint.sh
+    command: /home/gdxw/gdxw-base/bin/gdxwcli.sh console
+    # 因为是RMI调用,映射的端口必须内外相同
+    ports:
+      - "1499:1499"
+      - "1599:1599"
+      - "11001:11001"
+      - "11002:11002"
+    networks:
+      mynet:
+        ipv4_address: 172.16.110.11
+  # 采集器服务2
+  gclm-service2:
+    image: harbor.gdxw.com/gdxw/nms-gclm:${GCLM_VERSION}
+    container_name: "${ENV_PREFIX}-gclm-service2"
+    hostname: "${ENV_PREFIX}-gclm-service2"
+    restart: "always"
+    environment:
+      - RMI_REGISTRY_IP=${HOST_IP}
+      - RMI_REGISTRY_PORT=2499
+      - RMI_SERVICE_PORT=2599
+      - JMX_REGISTRY_PORT=12001
+      - JMX_SERVICE_PORT=12002
+      - ZK_ADDRESS=${HOST_IP}:2181
+      - GCLM_AREA=wuhou
+      - TRAP_PORT=1162
+      - MQ_HOST=${HOST_IP}
+      - MQ_PORT=5672
+      - MQ_USER=icm
+      - MQ_PASS=icm
+      - MQ_VHOST=/icm
+      - MQ_EXCHANGE_TOPIC=exchange-topic
+      - MQ_QUEUE_EVENT_TRAP=event-trap
+      - MQ_ROUTEKEY_EVENT_TRAP=event-trap
+      - MQ_QUEUE_RESOURCE_SCAN_RESULT=resource-scan-result
+      - MQ_ROUTEKEY_RESOURCE_SCAN_RESULT=resource-scan-result
+      - MQ_QUEUE_RESOURCE_SCAN_FINISH=resource-scan-finish
+      - MQ_ROUTEKEY_RESOURCE_SCAN_FINISH=resource-scan-finish
+    env_file:
+      - ./volume/gclm-service/env/default.env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./volume/gclm-service/logs-2:/home/gdxw/gdxw-base/logs:rw
+      - ./volume/gclm-service/conf/wrapper-java-additional.temp:/home/gdxw/gdxw-base/conf/wrapper/wrapper-java-additional.temp:ro
+      - ./volume/gclm-service/script/docker-entrypoint.sh:/docker-entrypoint.sh
+    entrypoint: /docker-entrypoint.sh
+    command: /home/gdxw/gdxw-base/bin/gdxwcli.sh console
+    # 因为是RMI调用,映射的端口必须内外相同
+    ports:
+      - "2499:2499"
+      - "2599:2599"
+      - "12001:12001"
+      - "12002:12002"
+    networks:
+      mynet:
+        ipv4_address: 172.16.110.12
+networks:
+  mynet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.16.110.0/24"

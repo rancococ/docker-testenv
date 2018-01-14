@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Server port="8005" shutdown="SHUTDOWN">
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+  <!--<Listener className="org.apache.catalina.security.SecurityListener" />-->
+  <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="off" />
+  <Listener className="org.apache.catalina.core.JasperListener" />
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+  <Listener className="org.apache.catalina.mbeans.JmxRemoteLifecycleListener" rmiRegistryPortPlatform="${JMX_REGISTRY_PORT}" rmiServerPortPlatform="${JMX_SERVICE_PORT}" />
+  <GlobalNamingResources>
+    <Resource name="UserDatabase" auth="Container" type="org.apache.catalina.UserDatabase" description="User database that can be updated and saved"
+              factory="org.apache.catalina.users.MemoryUserDatabaseFactory" pathname="conf/tomcat-users.xml" />
+  </GlobalNamingResources>
+  <Service name="Catalina">
+    <Executor name="tomcatThreadPoolApr" maxIdleTime="600000" minSpareThreads="50" maxThreads="500" namePrefix="catalina-exec-apr-"/>
+    <!--
+    <Executor name="tomcatThreadPoolAjp" maxIdleTime="600000" minSpareThreads="50" maxThreads="500" namePrefix="catalina-exec-ajp-"/>
+    -->
+    <Connector port="8080" useBodyEncodingForURI="true" URIEncoding="UTF-8" acceptCount="1000" enableLookups="false" redirectPort="8443" connectionTimeout="20000"
+               protocol="org.apache.coyote.http11.Http11AprProtocol" executor="tomcatThreadPoolApr"/>
+    <!--
+    <Connector port="8009" useBodyEncodingForURI="true" URIEncoding="UTF-8" acceptCount="1000" enableLookups="false" redirectPort="8443" connectionTimeout="20000"
+               protocol="org.apache.coyote.ajp.AjpAprProtocol" executor="tomcatThreadPoolAjp"/>
+    -->
+    <Engine name="Catalina" defaultHost="localhost">
+      <Realm className="org.apache.catalina.realm.LockOutRealm">
+        <Realm className="org.apache.catalina.realm.UserDatabaseRealm" resourceName="UserDatabase"/>
+      </Realm>
+      <Host name="localhost" deployOnStartup="false" deployXML="false" autoDeploy="false" unpackWARs="false" appBase="webapps">
+        <Valve className="org.apache.catalina.authenticator.SingleSignOn"/>
+        <Valve className="org.apache.catalina.valves.AccessLogValve" pattern="common" suffix=".log" prefix="localhost_access" directory="logs"/>
+        <Context sessionCookieName="GDXW_SESSION" sessionCookiePath="/gdxw/" distributable="true" reloadable="false" docBase="ROOT" path=""/>
+        <!--<Context sessionCookieName="GDXW_SESSION" sessionCookiePath="/gdxw/" distributable="true" reloadable="false" docBase="ROOT" path="" aliases="/static=/home/static"/>-->
+      </Host>
+    </Engine>
+  </Service>
+</Server>

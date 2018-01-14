@@ -1,6 +1,0 @@
-
-# upstream:mysite
-upstream mysite{
-    server ${PROXY_HOST1}:${PROXY_PORT1};
-    server ${PROXY_HOST2}:${PROXY_PORT2};
-}

@@ -1,0 +1,129 @@
+##########################################################################
+# 部署配置文件(ots)
+# 本配置文件(xx.yml)中的变量(${xxx})是从同级目录下的.env文件中读取的
+##########################################################################
+# compose支持的版本2
+version: "2"
+services:
+  # ots proxy
+  ots-proxy:
+    image: harbor.gdxw.com/library/nginx:1.12
+    container_name: "${ENV_PREFIX}-ots-proxy"
+    hostname: "${ENV_PREFIX}-ots-proxy"
+    restart: "always"
+    environment:
+      - PROXY_HOST1=172.16.130.11
+      - PROXY_PORT1=8080
+      - PROXY_HOST2=172.16.130.12
+      - PROXY_PORT2=8080
+    volumes:
+      - ./volume/ots-proxy/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./volume/ots-proxy/conf/proxy.conf:/etc/nginx/conf.d/proxy.conf:ro
+      - ./volume/ots-proxy/conf/upstream.temp:/etc/nginx/conf.d/upstream.temp:ro
+      - ./volume/ots-proxy/script/docker-entrypoint.sh:/docker-entrypoint.sh
+    entrypoint: /docker-entrypoint.sh
+    command: nginx -g 'daemon off;'
+    ports:
+      - "8180:80"
+    networks:
+      mynet:
+        ipv4_address: 172.16.130.10
+  # ots web1
+  ots-web1:
+    image: harbor.gdxw.com/gdxw/ots-web:${OTS_VERSION}
+    container_name: "${ENV_PREFIX}-ots-web1"
+    hostname: "${ENV_PREFIX}-ots-web1"
+    restart: "always"
+    environment:
+      - RMI_REGISTRY_IP=${HOST_IP}
+      - JMX_REGISTRY_PORT=11011
+      - JMX_SERVICE_PORT=11012
+      - MQ_HOST=192.168.100.200
+      - MQ_PORT=5672
+      - MQ_USER=ots
+      - MQ_PASS=ots
+      - MQ_VHOST=/ots
+      - MQ_QUEUE=rabbitmq_test
+      - REDIS_HOST=192.168.100.200
+      - REDIS_PORT=6379
+      - SERVICE_URL=http://172.16.130.21:8080
+      - LOG_LEVEL=info
+      - ZK_ADDRESS=192.168.100.200:2181
+      - ZK_ENABLE=true
+    env_file:
+      - ./volume/ots-web/env/default.env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./volume/ots-web/logs-1:/home/gdxw/gdxw-base/logs:rw
+      - ./volume/ots-web/static:/home/gdxw/gdxw-base/static:rw
+      - ./volume/ots-web/conf/wrapper-java-additional.temp:/home/gdxw/gdxw-base/conf/wrapper/wrapper-java-additional.temp:ro
+      - ./volume/ots-web/conf/server.xml:/home/gdxw/gdxw-base/conf/server.xml:ro
+      - ./volume/ots-web/script/docker-entrypoint.sh:/docker-entrypoint.sh
+    entrypoint: /docker-entrypoint.sh
+    command: /home/gdxw/gdxw-base/bin/gdxwcli.sh console
+    ports:
+      - "8181:8080"
+      - "11011:11011"
+      - "11012:11012"
+    networks:
+      mynet:
+        ipv4_address: 172.16.130.11
+  # ots service1
+  ots-service1:
+    image: harbor.gdxw.com/gdxw/ots-service:${OTS_VERSION}
+    container_name: "${ENV_PREFIX}-ots-service1"
+    hostname: "${ENV_PREFIX}-ots-service1"
+    restart: "always"
+    environment:
+      - RMI_REGISTRY_IP=${HOST_IP}
+      - JMX_REGISTRY_PORT=12011
+      - JMX_SERVICE_PORT=12012
+      - JDBC_HOST=192.168.100.200
+      - JDBC_PORT=3306
+      - JDBC_DATABASE=gdots
+      - JDBC_USERNAME=root
+      - JDBC_PASSWORD=root
+      - JDBC_HOST_SLAVE=192.168.100.200
+      - JDBC_PORT_SLAVE=3306
+      - JDBC_DATABASE_SLAVE=gdots
+      - JDBC_USERNAME_SLAVE=root
+      - JDBC_PASSWORD_SLAVE=root
+      - MQ_HOST=192.168.100.200
+      - MQ_PORT=5672
+      - MQ_USER=ots
+      - MQ_PASS=ots
+      - MQ_VHOST=/ots
+      - MQ_QUEUE=rabbitmq_test
+      - SMS_HOST=211.147.239.62
+      - SMS_SEND_PORT=9080
+      - SMS_GET_PORT=9070
+      - SMS_ENABLE=false
+      - LOG_LEVEL=info
+      - DB_LEVEL=info
+      - ZK_ADDRESS=192.168.100.200:2181
+      - ZK_ENABLE=true
+      - SERVICE_ADDRESS=http://172.16.130.21:8080
+    env_file:
+      - ./volume/ots-service/env/default.env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./volume/ots-service/logs-1:/home/gdxw/gdxw-base/logs:rw
+      - ./volume/ots-service/conf/wrapper-java-additional.temp:/home/gdxw/gdxw-base/conf/wrapper/wrapper-java-additional.temp:ro
+      - ./volume/ots-service/conf/server.xml:/home/gdxw/gdxw-base/conf/server.xml:ro
+      - ./volume/ots-service/script/docker-entrypoint.sh:/docker-entrypoint.sh
+    entrypoint: /docker-entrypoint.sh
+    command: /home/gdxw/gdxw-base/bin/gdxwcli.sh console
+    ports:
+      - "8281:8080"
+      - "12011:12011"
+      - "12012:12012"
+    networks:
+      mynet:
+        ipv4_address: 172.16.130.21
+networks:
+  mynet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.16.130.0/24"
