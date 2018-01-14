@@ -38,8 +38,8 @@ services:
       - MYSQL_PASSWORD=test
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ./volume/mysql/conf:/etc/mysql/conf.d:ro
-      - ./volume/mysql/data:/var/lib/mysql:rw
+      - ./volume/mysql-8.0/conf:/etc/mysql/conf.d:ro
+      - ./volume/mysql-8.0/data:/var/lib/mysql:rw
     ports:
       - "3308:3306"
     networks:
